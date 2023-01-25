@@ -1,0 +1,55 @@
+version: '3.9'
+
+services:
+  frontend:
+    build:
+      dockerfile: Dockerfile.prod
+      context: ./frontend
+    container_name: realworld6-docker-frontend
+    restart: unless-stopped
+    command: serve -s build -l 3000
+    networks:
+      - network-d
+
+  api:
+    build: ./api
+    container_name: realworld6-docker-api
+    command: npm run start
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - MONGO_URL=mongodb://api_db:27017/api
+      - AUTH_API_URL=http://auth:3002/api
+    depends_on:
+      - api_db
+    networks:
+      - network-d
+
+  api_db:
+    image: mongo:latest
+    container_name: realworld6-docker-api-db
+    volumes:
+      - mongodb_api:/data/db
+    networks:
+      - network-d
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: realworld6-docker-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf.prod:/etc/nginx/conf.d/nginx.conf
+    depends_on:
+      - frontend
+      - api
+    networks:
+      - network-d
+
+volumes:
+  mongodb_api:
+
+networks:
+  network-d:
+    driver: bridge
+
